@@ -1,0 +1,134 @@
+.create-group-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.create-group-modal {
+  background: var(--background-color);
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.create-group-modal h2 {
+  margin: 0 0 1.5rem;
+  color: var(--primary-color);
+}
+
+.users-list {
+  margin: 1.5rem 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.users-list h3 {
+  margin: 0 0 1rem;
+  color: var(--text-color);
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.user-item:hover {
+  background: var(--gray-light);
+}
+
+.user-item.selected {
+  background: var(--gray-light);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-weight: bold;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-info h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.user-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--gray-dark);
+}
+
+.user-select {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-actions button[type="button"] {
+  background: transparent;
+  border: 1px solid var(--gray-dark);
+  color: var(--gray-dark);
+}
+
+.modal-actions button[type="submit"] {
+  background: var(--primary-color);
+  border: none;
+  color: white;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+} 

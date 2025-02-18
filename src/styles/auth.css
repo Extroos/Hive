@@ -1,0 +1,123 @@
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--gray-light);
+}
+
+.auth-box {
+  background: var(--background-color);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-box h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--primary-color);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--gray-light);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.auth-box button:hover {
+  background: var(--secondary-color);
+}
+
+.auth-box button:disabled {
+  background: var(--gray-dark);
+  cursor: not-allowed;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--gray-dark);
+}
+
+.auth-link a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.auth-link a:hover {
+  text-decoration: underline;
+}
+
+.confirmation-message {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.email-highlight {
+  font-weight: bold;
+  color: var(--primary-color);
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: var(--gray-light);
+  border-radius: 4px;
+}
+
+.confirmation-tips {
+  text-align: left;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--gray-light);
+  border-radius: 4px;
+}
+
+.confirmation-tips p {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-tips ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.confirmation-tips li {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.confirmation-tips li:before {
+  content: "•";
+  position: absolute;
+  left: 0.5rem;
+  color: var(--primary-color);
+} 
