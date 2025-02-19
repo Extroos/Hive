@@ -33,7 +33,7 @@ const WelcomeChat = () => {
         <div className="welcome-chat-icon"></div>
         
         <div className="welcome-header">
-          <h1>Chat Dial Ra7a!</h1>
+          <h1>Welcome to Hive!</h1>
           <span className="beta-tag">BETA</span>
         </div>
         
