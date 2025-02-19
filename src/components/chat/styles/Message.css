@@ -2,24 +2,30 @@
   position: relative;
   max-width: 80%;
   margin: 0.5rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
   word-wrap: break-word;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: all 0.2s ease;
 }
 
 .message.sent {
   margin-left: auto;
-  background-color: var(--primary-color);
+  background: var(--primary-color);
   color: white;
+  box-shadow: 0 2px 8px rgba(42, 171, 238, 0.2);
 }
 
 .message.received {
   margin-right: auto;
-  background-color: var(--message-bg);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .message-actions {
@@ -82,30 +88,66 @@
 
 @media (max-width: 768px) {
   .message {
-    max-width: 85%;
-    padding: 0.625rem 0.875rem;
+    max-width: 90%;
+    padding: 1.25rem 1.5rem;
+    font-size: 1.5rem;
+    line-height: 1.4;
+    margin: 1rem 0;
+  }
+
+  .message.sent {
+    box-shadow: 0 2px 12px rgba(42, 171, 238, 0.25);
+  }
+
+  .message.received {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .message-time {
+    font-size: 1.25rem;
+    margin-top: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .message-sender {
+    font-size: 1.375rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .message-content {
+    font-size: 1.5rem;
+    line-height: 1.4;
   }
 
   .message-actions {
-    top: -3.5rem;
-    padding: 0.5rem;
-    gap: 0.75rem;
-    background-color: var(--background-color);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    top: -5rem;
+    padding: 1rem;
+    gap: 1.25rem;
   }
 
   .action-button {
-    width: 3rem;
-    height: 3rem;
-    font-size: 1.5rem;
+    width: 4rem;
+    height: 4rem;
+    font-size: 2rem;
   }
 
   .message.show-context {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 0, 0, 0.04);
   }
 
   .message.sent.show-context {
-    background-color: var(--primary-color-dark, #1a91da);
+    background-color: rgba(42, 171, 238, 0.9);
+  }
+
+  .message-edit-input {
+    font-size: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  .typing-indicator {
+    font-size: 1.375rem;
+    padding: 1rem 1.5rem;
   }
 } 

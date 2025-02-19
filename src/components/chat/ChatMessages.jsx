@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Message from '../Message'
 import './styles/ChatMessages.css'
 
@@ -8,6 +8,11 @@ const ChatMessages = ({
   user, 
   messagesEndRef
 }) => {
+  // Log when messages change
+  useEffect(() => {
+    console.log('🔄 ChatMessages - Messages updated:', messages.length)
+  }, [messages])
+
   return (
     <div className="messages-container">
       <div className="chat-messages">

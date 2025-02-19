@@ -166,96 +166,86 @@ const Chat = () => {
     const setupSubscription = async () => {
       if (!user) return
 
-      // Clean up existing subscription if any
-      if (subscription) {
-        console.log('Cleaning up existing subscription')
-        await supabase.removeChannel(subscription)
+      try {
+        // Clean up existing subscription if any
+        if (subscription) {
+          await supabase.removeChannel(subscription)
+        }
+
+        console.log('🔄 Setting up real-time subscription for user:', user.id)
+
+        // Get all chat IDs the user is a member of
+        const { data: memberChats, error: memberError } = await supabase
+          .from('chat_members')
+          .select('chat_id')
+          .eq('user_id', user.id)
+
+        if (memberError) {
+          console.error('❌ Error fetching member chats:', memberError)
+          return
+        }
+
+        const chatIds = memberChats?.map(chat => chat.chat_id) || []
+        console.log('📱 Subscribing to chats:', chatIds)
+
+        // Create a new subscription
+        subscription = supabase
+          .channel(`messages:${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'messages',
+              filter: `chat_id=in.(${chatIds.join(',')})`
+            },
+            (payload) => {
+              console.log('📨 Real-time message event received:', {
+                event: payload.eventType,
+                payload,
+                timestamp: new Date().toISOString()
+              })
+
+              if (payload.eventType === 'INSERT') {
+                handleNewMessage(payload)
+              } else if (payload.eventType === 'UPDATE') {
+                handleMessageUpdate(payload)
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'typing_indicators',
+              filter: selectedChat ? `chat_id=eq.${selectedChat.id}` : undefined
+            },
+            handleTypingUpdate
+          )
+          .subscribe(async (status) => {
+            console.log(`🔌 Subscription status:`, status)
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ Successfully subscribed to real-time changes')
+            } else if (status === 'CLOSED') {
+              console.log('❌ Subscription closed')
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('❌ Channel error')
+            }
+          })
+
+        return () => {
+          console.log('🔄 Cleaning up subscription')
+          if (subscription) {
+            supabase.removeChannel(subscription)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in setupSubscription:', error)
       }
-
-      console.log('Setting up new realtime subscription for user:', user.id)
-
-      // Get all chat IDs the user is a member of
-      const { data: memberChats } = await supabase
-        .from('chat_members')
-        .select('chat_id')
-        .eq('user_id', user.id)
-
-      const chatIds = memberChats?.map(chat => chat.chat_id) || []
-      console.log('Subscribing to chats:', chatIds)
-
-      subscription = supabase
-        .channel('messages_and_profiles')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: chatIds.length > 0 ? `chat_id=in.(${chatIds.join(',')})` : undefined
-          },
-          (payload) => {
-            console.log('🟢 New message INSERT event received:', {
-              payload,
-              currentChat: selectedChat,
-              currentUser: user.id
-            })
-            handleNewMessage(payload)
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: chatIds.length > 0 ? `chat_id=in.(${chatIds.join(',')})` : undefined
-          },
-          (payload) => {
-            console.log('🔵 Message UPDATE event received:', payload)
-            handleMessageUpdate(payload)
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'typing_indicators',
-            filter: selectedChat ? `chat_id=eq.${selectedChat}` : undefined
-          },
-          (payload) => {
-            console.log('⌨️ Typing indicator event received:', payload)
-            handleTypingUpdate(payload)
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles'
-          },
-          (payload) => {
-            console.log('👤 Profile UPDATE event received:', payload)
-            handleProfileUpdate(payload)
-          }
-        )
-        .subscribe((status) => {
-          console.log(`🔌 Subscription status changed to: ${status}`)
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Successfully subscribed to real-time changes')
-          }
-        })
     }
 
     setupSubscription()
-
-    return () => {
-      if (subscription) {
-        console.log('🔴 Cleaning up subscription on unmount')
-        supabase.removeChannel(subscription)
-      }
-    }
   }, [user?.id, selectedChat])
 
   useEffect(() => {
@@ -469,25 +459,27 @@ const Chat = () => {
   }
 
   const handleNewMessage = async (payload) => {
-    console.log('🎯 Starting to process new message:', {
-      payload,
-      selectedChat,
-      userId: user.id
+    console.log('🔵 RECEIVER - New message event received:', {
+      messageId: payload.new.id,
+      chatId: payload.new.chat_id,
+      senderId: payload.new.sender_id,
+      timestamp: new Date().toISOString()
     })
 
-    if (!payload.new) {
-      console.log('❌ No new message data in payload')
-      return
-    }
-
     try {
-      console.log('🔍 Fetching complete message data for id:', payload.new.id)
-      
+      // Check if message already exists in state
+      const messageExists = messages.some(msg => msg.id === payload.new.id)
+      if (messageExists) {
+        console.log('🟡 RECEIVER - Message already exists, skipping:', payload.new.id)
+        return
+      }
+
+      // Fetch the complete message data with sender information
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey(
+          sender:profiles!messages_sender_id_fkey (
             id,
             username,
             avatar_url
@@ -497,70 +489,81 @@ const Chat = () => {
         .single()
 
       if (messageError) {
-        console.error('❌ Error fetching message details:', messageError)
+        console.error('🔴 RECEIVER - Error fetching message details:', messageError)
         return
       }
 
-      console.log('✅ Successfully fetched message data:', messageData)
+      console.log('🟢 RECEIVER - Fetched full message data:', messageData)
 
-      const processedMessage = {
-        ...messageData,
-        sender: messageData.sender || { username: 'Unknown User' }
-      }
-
-      // Update messages if it's for the selected chat
-      if (payload.new.chat_id === selectedChat) {
-        console.log('📝 Updating messages for current chat')
-        setMessages(prev => {
-          // Check if message already exists
-          const exists = prev.some(msg => msg.id === processedMessage.id)
-          if (exists) {
-            console.log('⚠️ Message already exists in state')
-            return prev
+      // Update messages if this is for the current chat
+      if (selectedChat?.id === messageData.chat_id) {
+        console.log('🟣 RECEIVER - Updating messages for current chat')
+        // Update local state with deduplication
+        setMessages(prevMessages => {
+          // Check again for duplicates before adding
+          if (prevMessages.some(msg => msg.id === messageData.id)) {
+            return prevMessages
           }
-          
-          console.log('✨ Adding new message to state')
-          const updatedMessages = [...prev, processedMessage].sort((a, b) => 
-            new Date(a.created_at) - new Date(b.created_at)
+          return [...prevMessages, messageData]
+        })
+        
+        // Update Redux state
+        dispatch({
+          type: 'ADD_MESSAGE',
+          payload: messageData
+        })
+
+        // Scroll to bottom
+        scrollToBottom()
+
+        // Update last message in chats list
+        const updatedChat = {
+          ...selectedChat,
+          last_message: messageData
+        }
+        
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === messageData.chat_id ? updatedChat : chat
           )
-          
-          // Schedule a scroll after the state update
-          requestAnimationFrame(() => {
-            console.log('📜 Scrolling to bottom')
-            scrollToBottom()
-          })
-          
-          return updatedMessages
+        )
+        
+        dispatch({
+          type: 'UPDATE_CHAT',
+          payload: updatedChat
         })
       } else {
-        console.log('📋 Message is for a different chat:', payload.new.chat_id)
-      }
+        console.log('🟡 RECEIVER - Message is for a different chat, updating unread count')
+        // Update unread count for other chats
+        const { data: chat } = await supabase
+          .from('chats')
+          .select('*')
+          .eq('id', messageData.chat_id)
+          .single()
 
-      // Always update the chats list with the new message
-      console.log('🔄 Updating chats list')
-      setChats(prevChats => {
-        const updatedChats = prevChats.map(chat => {
-          if (chat.id === payload.new.chat_id) {
-            console.log('📌 Updating chat:', chat.id)
-            return {
-              ...chat,
-              messages: [processedMessage, ...(chat.messages || [])].slice(0, 50),
-              last_message: processedMessage
-            }
+        if (chat) {
+          const updatedChat = {
+            ...chat,
+            last_message: messageData,
+            unread_count: (chat.unread_count || 0) + 1
           }
-          return chat
-        })
-
-        return updatedChats.sort((a, b) => {
-          const aTime = a.last_message?.created_at || a.created_at
-          const bTime = b.last_message?.created_at || b.created_at
-          return new Date(bTime) - new Date(aTime)
-        })
-      })
-
-      console.log('✅ Finished processing new message')
+          
+          // Update local state
+          setChats(prevChats => 
+            prevChats.map(c => 
+              c.id === messageData.chat_id ? updatedChat : c
+            )
+          )
+          
+          // Update Redux state
+          dispatch({
+            type: 'UPDATE_CHAT',
+            payload: updatedChat
+          })
+        }
+      }
     } catch (error) {
-      console.error('❌ Error processing new message:', error)
+      console.error('🔴 RECEIVER - Error handling new message:', error)
     }
   }
 
@@ -592,7 +595,15 @@ const Chat = () => {
   }
 
   const handleMessageSent = (message) => {
-    setMessages((prev) => [...prev, message])
+    // Check if message already exists
+    if (messages.some(msg => msg.id === message.id)) {
+      console.log('🟡 SENDER - Message already exists, skipping:', message.id)
+      return
+    }
+
+    console.log('🟢 SENDER - Adding new message to UI:', message.id)
+    setMessages(prevMessages => [...prevMessages, message])
+    scrollToBottom()
   }
 
   const handleTyping = async () => {

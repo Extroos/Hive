@@ -134,4 +134,4 @@ const ChatHeader = ({
   )
 }
 
-export default React.memo(ChatHeader) 
+export default ChatHeader 

@@ -202,6 +202,12 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
     if (!chatId?.id && !chatId) return // Add validation for chatId
 
     try {
+      console.log('🔵 SENDER - Starting to send message:', {
+        content: message.trim(),
+        chatId: typeof chatId === 'object' ? chatId.id : chatId,
+        timestamp: new Date().toISOString()
+      })
+
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) return
 
@@ -227,6 +233,13 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
 
       if (messageError) throw messageError
 
+      console.log('🟢 SENDER - Message sent successfully:', {
+        messageId: messageData.id,
+        content: messageData.content,
+        sender: messageData.sender?.username,
+        chatId: messageData.chat_id
+      })
+
       // Clear input and draft
       setMessage('')
       localStorage.removeItem(`draft_${chatId}`)
@@ -247,13 +260,14 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
         })
 
       if (onMessageSent) {
+        console.log('🟣 SENDER - Notifying local UI of sent message')
         onMessageSent({
           ...messageData,
           sender: messageData.sender || { username: 'Unknown User' }
         })
       }
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('🔴 SENDER - Error sending message:', error)
       // Restore message if failed
       setMessage(lastMessageRef.current)
     }
