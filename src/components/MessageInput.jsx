@@ -9,7 +9,11 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  const lastTypingUpdateRef = useRef(0)
   const lastMessageRef = useRef('')
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
+  const TYPING_DEBOUNCE = 1000 // 1 second debounce
+  const TYPING_EXPIRY = 3000 // 3 seconds before typing indicator expires
 
   // Load draft message on component mount
   useEffect(() => {
@@ -27,11 +31,34 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
     }
   }, [chatId])
 
-  // Debounced typing indicator
-  const debouncedTyping = useCallback(() => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
+  useEffect(() => {
+    const handleFocus = () => setIsKeyboardVisible(true)
+    const handleBlur = () => setIsKeyboardVisible(false)
+    
+    const input = fileInputRef.current
+    if (input) {
+      input.addEventListener('focus', handleFocus)
+      input.addEventListener('blur', handleBlur)
     }
+
+    return () => {
+      if (input) {
+        input.removeEventListener('focus', handleFocus)
+        input.removeEventListener('blur', handleBlur)
+      }
+    }
+  }, [])
+
+  // Improved debounced typing indicator
+  const debouncedTyping = useCallback(() => {
+    const now = Date.now()
+    
+    // Only update if enough time has passed since last update
+    if (now - lastTypingUpdateRef.current < TYPING_DEBOUNCE) {
+      return
+    }
+
+    lastTypingUpdateRef.current = now
 
     const updateTypingStatus = async () => {
       try {
@@ -41,11 +68,9 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
         await supabase
           .from('typing_indicators')
           .upsert({
-            chat_id: chatId,
+            chat_id: typeof chatId === 'object' ? chatId.id : chatId,
             user_id: userData.user.id,
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'chat_id,user_id'
           })
 
         if (onTyping) onTyping()
@@ -54,8 +79,14 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
       }
     }
 
+    // Clear any existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
     updateTypingStatus()
 
+    // Set timeout to clear typing status
     typingTimeoutRef.current = setTimeout(async () => {
       try {
         const { data: userData } = await supabase.auth.getUser()
@@ -64,12 +95,15 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
         await supabase
           .from('typing_indicators')
           .delete()
-          .match({ chat_id: chatId, user_id: userData.user.id })
+          .match({ 
+            chat_id: typeof chatId === 'object' ? chatId.id : chatId,
+            user_id: userData.user.id 
+          })
       } catch (error) {
         console.error('Error clearing typing status:', error)
       }
       typingTimeoutRef.current = null
-    }, 2000)
+    }, TYPING_EXPIRY)
   }, [chatId, onTyping])
 
   // Handle file drop
@@ -165,13 +199,14 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!message.trim() && !uploading) return
+    if (!chatId?.id && !chatId) return // Add validation for chatId
 
     try {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) return
 
       const newMessage = {
-        chat_id: chatId,
+        chat_id: typeof chatId === 'object' ? chatId.id : chatId,
         content: message.trim(),
         type: 'text',
         sender_id: userData.user.id
@@ -206,7 +241,10 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
       await supabase
         .from('typing_indicators')
         .delete()
-        .match({ chat_id: chatId, user_id: userData.user.id })
+        .match({ 
+          chat_id: typeof chatId === 'object' ? chatId.id : chatId,
+          user_id: userData.user.id 
+        })
 
       if (onMessageSent) {
         onMessageSent({
@@ -229,10 +267,17 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
     }
   }
 
+  const containerClasses = [
+    'message-input-container',
+    dragOver ? 'drag-over' : '',
+    uploading ? 'uploading' : '',
+    isKeyboardVisible ? 'keyboard-visible' : ''
+  ].filter(Boolean).join(' ')
+
   return (
     <form 
       onSubmit={handleSubmit} 
-      className={`message-input-container ${dragOver ? 'drag-over' : ''} ${uploading ? 'uploading' : ''}`}
+      className={containerClasses}
       onDrop={handleDrop}
       onDragOver={(e) => {
         e.preventDefault()
@@ -260,10 +305,16 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
         type="text"
         value={message}
         onChange={(e) => {
-          setMessage(e.target.value)
-          debouncedTyping()
+          const newValue = e.target.value
+          setMessage(newValue)
+          
+          // Only trigger typing indicator if there's actual content
+          if (newValue.trim().length > 0) {
+            debouncedTyping()
+          }
+          
           // Save draft
-          localStorage.setItem(`draft_${chatId}`, e.target.value)
+          localStorage.setItem(`draft_${chatId}`, newValue)
         }}
         onKeyDown={handleKeyDown}
         placeholder={uploading ? `Uploading... ${Math.round(uploadProgress)}%` : "Type a message..."}

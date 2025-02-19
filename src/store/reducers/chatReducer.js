@@ -1,6 +1,6 @@
 const initialState = {
   messages: [],
-  contacts: [],
+  chats: [],
   selectedChat: null,
   loading: false,
   error: null,
@@ -18,10 +18,22 @@ const chatReducer = (state = initialState, action) => {
         ...state,
         messages: [...state.messages, action.payload],
       }
-    case 'SET_CONTACTS':
+    case 'SET_CHATS':
       return {
         ...state,
-        contacts: action.payload,
+        chats: action.payload,
+      }
+    case 'ADD_CHAT':
+      return {
+        ...state,
+        chats: [...state.chats, action.payload],
+      }
+    case 'UPDATE_CHAT':
+      return {
+        ...state,
+        chats: state.chats.map(chat => 
+          chat.id === action.payload.id ? { ...chat, ...action.payload } : chat
+        ),
       }
     case 'SET_SELECTED_CHAT':
       return {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { supabase } from '../supabaseClient'
 import Message from '../components/Message'
@@ -8,39 +8,72 @@ import CreateDirectChat from '../components/CreateDirectChat'
 import ProfileSetup from '../components/ProfileSetup'
 import ProfileSettings from '../components/ProfileSettings'
 import ChatList from '../components/ChatList'
-import { initMobileViewport } from '../utils/mobileUtils'
+import mobileUtils from '../utils/mobileUtils'
+import ChatSidebar from '../components/chat/ChatSidebar'
+import ChatMessages from '../components/chat/ChatMessages'
+import WelcomeChat from '../components/chat/WelcomeChat'
 import '../styles/chat.css'
 import '../styles/loading.css'
 
 const REALTIME_CHANNEL = 'realtime_messages'
 
 const useMessageScroll = (messages, selectedChat) => {
-  const messagesEndRef = React.useRef(null)
-  const scrollTimeout = React.useRef(null)
+  const messagesEndRef = useRef(null)
+  const scrollTimeout = useRef(null)
+  const lastMessageRef = useRef(null)
+  const isScrollingRef = useRef(false)
 
   const scrollToBottom = (smooth = true) => {
     if (scrollTimeout.current) {
       clearTimeout(scrollTimeout.current)
     }
 
-    scrollTimeout.current = setTimeout(() => {
+    // Set scrolling flag
+    isScrollingRef.current = true
+
+    // Use requestAnimationFrame for smoother scrolling
+    requestAnimationFrame(() => {
       if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({
-          behavior: smooth ? 'smooth' : 'auto',
-          block: 'end'
-        })
+        const chatMessages = document.querySelector('.chat-messages')
+        if (chatMessages) {
+          const scrollOptions = {
+            behavior: smooth ? 'smooth' : 'auto',
+            block: 'end',
+          }
+          
+          messagesEndRef.current.scrollIntoView(scrollOptions)
+
+          // Clear scrolling flag after animation
+          scrollTimeout.current = setTimeout(() => {
+            isScrollingRef.current = false
+          }, smooth ? 300 : 0)
+        }
       }
-    }, 100)
+    })
   }
 
+  // Scroll on chat change
   useEffect(() => {
-    scrollToBottom(false) // Instant scroll on chat change
+    scrollToBottom(false)
+    lastMessageRef.current = messages[messages.length - 1]?.id
   }, [selectedChat])
 
+  // Scroll on new messages
   useEffect(() => {
-    scrollToBottom() // Smooth scroll on new messages
+    const lastMessage = messages[messages.length - 1]
+    
+    // Only scroll if it's a new message
+    if (lastMessage?.id !== lastMessageRef.current) {
+      lastMessageRef.current = lastMessage?.id
+      
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        scrollToBottom(true)
+      }, 50)
+    }
   }, [messages])
 
+  // Cleanup
   useEffect(() => {
     return () => {
       if (scrollTimeout.current) {
@@ -80,12 +113,30 @@ const Chat = () => {
   const { profile } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const { messagesEndRef, scrollToBottom } = useMessageScroll(messages, selectedChat)
+  const [showActionMenu, setShowActionMenu] = useState(false)
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const actionButtonRef = useRef(null)
+  const actionMenuRef = useRef(null)
 
   // Initialize mobile viewport
   useEffect(() => {
-    const cleanup = initMobileViewport();
+    const cleanup = mobileUtils.initMobileViewport();
     return cleanup;
   }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isSidebarOpen && 
+          !event.target.closest('.sidebar') && 
+          !event.target.closest('.menu-button')) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     let subscription = null
@@ -351,6 +402,8 @@ const Chat = () => {
 
   const fetchMessages = async () => {
     try {
+      if (!selectedChat?.id) return;
+      
       setLoading(true)
       const { data, error } = await supabase
         .from('messages')
@@ -363,7 +416,7 @@ const Chat = () => {
             avatar_url
           )
         `)
-        .eq('chat_id', selectedChat)
+        .eq('chat_id', selectedChat.id)
         .order('created_at', { ascending: true })
 
       if (error) {
@@ -386,15 +439,15 @@ const Chat = () => {
 
   const fetchTypingStatus = async () => {
     try {
-      if (!selectedChat) return;
+      if (!selectedChat?.id) return;
 
-      // Get typing indicators from the last 10 seconds
+      // Get typing indicators from the last 3 seconds
       const threeSecondsAgo = new Date(Date.now() - 3000).toISOString()
       
       const { data, error } = await supabase
         .from('typing_indicators')
         .select('*, profiles(*)')
-        .eq('chat_id', selectedChat.toString())
+        .eq('chat_id', selectedChat.id)
         .gt('updated_at', threeSecondsAgo)
 
       if (error) {
@@ -408,6 +461,7 @@ const Chat = () => {
           typing[indicator.user_id] = indicator.profiles
         }
       })
+
       setTypingUsers(typing)
     } catch (error) {
       console.error('Error fetching typing status:', error)
@@ -542,20 +596,18 @@ const Chat = () => {
   }
 
   const handleTyping = async () => {
-    if (!selectedChat) return
+    if (!selectedChat?.id) return
     
     try {
-      const user = await supabase.auth.getUser()
-      if (!user.data.user) return
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
       const { error } = await supabase
         .from('typing_indicators')
         .upsert({
-          chat_id: selectedChat,
-          user_id: user.data.user.id,
+          chat_id: selectedChat.id,
+          user_id: user.id,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'chat_id,user_id'
         })
 
       if (error) {
@@ -627,6 +679,24 @@ const Chat = () => {
     })
   }
 
+  // Add click outside handler for action menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showActionMenu &&
+        actionButtonRef.current &&
+        actionMenuRef.current &&
+        !actionButtonRef.current.contains(event.target) &&
+        !actionMenuRef.current.contains(event.target)
+      ) {
+        setShowActionMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showActionMenu])
+
   if (!profile) {
     return (
       <div className="loading-screen">
@@ -643,86 +713,55 @@ const Chat = () => {
   return (
     <div className="chat-container">
       <button 
-        className={`menu-button ${isSidebarOpen ? 'open' : ''}`}
+        className="menu-button"
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        aria-label="Toggle menu"
+        aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
+      >
+        {isSidebarOpen ? "×" : "☰"}
+      </button>
+      
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
       />
-      {isSidebarOpen && (
-        <div 
-          className="sidebar-overlay visible" 
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+
       <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="user-profile" onClick={() => setShowProfileSettings(true)}>
-            <div className="user-avatar">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.username} />
-              ) : (
-                profile?.username?.[0]?.toUpperCase() || '?'
-              )}
-              <div className={`status-indicator ${profile?.status || 'offline'}`}>
-                <span className="status-tooltip">{profile?.status || 'offline'}</span>
-              </div>
-            </div>
-            <div className="user-info">
-              <h3>{profile?.username}</h3>
-              <p className="user-status">
-                <span className="status-icon">{getStatusIcon(profile?.status)}</span>
-                {profile?.status || 'offline'}
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              onClick={() => setShowCreateDirect(true)}
-              className="create-direct-btn"
-            >
-              New Chat
-            </button>
-            <button
-              onClick={() => setShowCreateGroup(true)}
-              className="create-group-btn"
-            >
-              New Group
-            </button>
-            <button onClick={handleLogout} className="logout-btn">
-              Logout
-            </button>
-          </div>
-        </div>
-        <ChatList 
-          chats={chats}
-          selectedChat={chats.find(chat => chat.id === selectedChat)}
+        <ChatSidebar
+          selectedChat={selectedChat}
           onChatSelect={(chat) => {
-            setSelectedChat(chat.id);
-            setIsSidebarOpen(false); // Close sidebar when chat is selected
+            if (chat?.id) {
+              setSelectedChat(chat);
+              setIsSidebarOpen(false);
+            }
           }}
+          onLogout={handleLogout}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          chats={chats}
+          showCreateDirect={showCreateDirect}
+          setShowCreateDirect={setShowCreateDirect}
+          showCreateGroup={showCreateGroup}
+          setShowCreateGroup={setShowCreateGroup}
+          showProfileSettings={showProfileSettings}
+          setShowProfileSettings={setShowProfileSettings}
+          showActionMenu={showActionMenu}
+          setShowActionMenu={setShowActionMenu}
+          showSettingsMenu={showSettingsMenu}
+          setShowSettingsMenu={setShowSettingsMenu}
+          actionButtonRef={actionButtonRef}
+          actionMenuRef={actionMenuRef}
         />
       </div>
+
       <div className="chat-main">
         {selectedChat ? (
           <>
-            <div className="chat-messages">
-              {messages.map((message) => (
-                <Message
-                  key={message?.id || Math.random()}
-                  message={message}
-                  currentUserId={user?.id}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            {Object.keys(typingUsers).length > 0 && (
-              <div className="typing-indicator">
-                {Object.values(typingUsers)
-                  .filter(Boolean)
-                  .map((user) => user?.username || 'Someone')
-                  .join(', ')}{' '}
-                {Object.keys(typingUsers).length === 1 ? 'is' : 'are'} typing...
-              </div>
-            )}
+            <ChatMessages
+              messages={messages}
+              typingUsers={typingUsers}
+              user={user}
+              messagesEndRef={messagesEndRef}
+            />
             <MessageInput
               chatId={selectedChat}
               onMessageSent={handleMessageSent}
@@ -730,46 +769,10 @@ const Chat = () => {
             />
           </>
         ) : (
-          <div className="no-chat-selected">
-            <div className="welcome-content">
-              <div className="app-logo" />
-              <h1 className="welcome-title">Welcome to Ana O s7abi</h1>
-              <p className="welcome-subtitle">
-                Connect with friends, family, and colleagues through instant messaging, group chats, and seamless file sharing.
-              </p>
-            </div>
-            <div className="welcome-features">
-              <div className="feature-card">
-                <div className="feature-icon">💬</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">Direct Messages</h3>
-                  <p className="feature-description">
-                    Start private conversations with anyone in your network. Share messages, photos, and files securely.
-                  </p>
-                </div>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">👥</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">Group Chats</h3>
-                  <p className="feature-description">
-                    Create groups for team collaboration, family circles, or friend gatherings. Keep everyone in the loop.
-                  </p>
-                </div>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">🔒</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">Secure Communication</h3>
-                  <p className="feature-description">
-                    Your conversations are protected with end-to-end encryption. Your privacy is our top priority.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <WelcomeChat />
         )}
       </div>
+
       {showCreateGroup && (
         <CreateGroupChat
           onClose={() => setShowCreateGroup(false)}

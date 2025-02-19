@@ -1,7 +1,10 @@
 .message {
-  max-width: 70%;
-  margin-bottom: 0.5rem;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0.5rem 0;
+  max-width: 70%;
+  touch-action: none;
   opacity: 0;
   transform: translateY(10px);
   animation: messageAppear 0.3s ease forwards;
@@ -134,50 +137,47 @@
 }
 
 .message-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   gap: 0.5rem;
-  opacity: 0;
-  transition: all 0.2s ease;
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.25rem;
+  padding: 0.5rem;
+  background: var(--background-color);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 10;
 }
 
-.message-content:hover .message-actions {
+.message.show-context .message-actions {
   opacity: 1;
+  visibility: visible;
 }
 
 .action-button {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  background: transparent;
-  color: var(--gray-dark);
-  transition: all 0.2s ease;
+  background: var(--gray-light);
+  color: var(--text-color);
   border: none;
   cursor: pointer;
-  padding: 0;
+  transition: all 0.2s ease;
 }
 
 .action-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--primary-color);
+  background: var(--primary-color);
+  color: white;
 }
 
 .action-button.delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--error-color);
+  background: var(--error-color);
 }
 
 .message-image {
@@ -359,10 +359,7 @@
 @media (max-width: 768px) {
   .message {
     max-width: 85%;
-    margin-bottom: 0.75rem;
-    position: relative;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: pan-x pan-y;
+    touch-action: none;
   }
 
   .message-content {
@@ -397,63 +394,38 @@
   }
 
   .message-actions {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
+    position: absolute;
+    top: -45px;
     right: 0;
-    background: white;
-    padding: 1rem;
-    gap: 1rem;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    opacity: 1;
-    transform: none;
-    border-radius: 16px 16px 0 0;
-    z-index: 1000;
-    justify-content: space-around;
-    animation: slideUp 0.2s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-    }
-    to {
-      transform: translateY(0);
-    }
+    padding: 0.5rem;
+    background: var(--background-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 100;
   }
 
   .message.show-context .message-actions {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
   }
 
   .action-button {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    font-size: 20px;
-    background: #f8fafc;
-    color: var(--text-color);
-    transition: all 0.2s ease;
-  }
-
-  .action-button:active {
-    transform: scale(0.95);
-    background: #f1f5f9;
-  }
-
-  .action-button.edit:active {
-    color: var(--primary-color);
-    background: rgba(42, 171, 238, 0.1);
-  }
-
-  .action-button.delete:active {
-    color: var(--error-color);
-    background: rgba(239, 68, 68, 0.1);
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
   }
 
   .message-content:active {
-    animation: messageHighlight 0.5s ease;
+    opacity: 0.7;
+  }
+
+  .message.show-context .message-content {
+    opacity: 0.7;
   }
 
   .reaction {

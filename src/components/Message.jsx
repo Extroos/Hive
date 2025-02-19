@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { supabase } from '../supabaseClient'
 import '../styles/message.css'
+import { formatDistanceToNow } from 'date-fns'
 
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡']
 
-const Message = memo(({ message, currentUserId }) => {
+const Message = memo(({ message, currentUserId, onDelete, onEdit, onReact }) => {
   const [showReactions, setShowReactions] = useState(false)
   const [reactions, setReactions] = useState([])
   const [isVisible, setIsVisible] = useState(false)
@@ -16,11 +17,13 @@ const Message = memo(({ message, currentUserId }) => {
   const editInputRef = useRef(null)
   const [showContext, setShowContext] = useState(false)
   const pressTimer = useRef(null)
-  const isMobile = window.innerWidth <= 768
+  const touchStartPos = useRef({ x: 0, y: 0 })
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   const isSentByMe = message.sender_id === currentUserId
-  const messageTime = new Date(message.created_at).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
+  const messageTime = new Date(message.created_at).toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
   })
 
   useEffect(() => {
@@ -48,62 +51,55 @@ const Message = memo(({ message, currentUserId }) => {
   }, [isEditing])
 
   useEffect(() => {
-    const handlePressStart = (e) => {
-      if (!isMobile || message.type !== 'text' || !isSentByMe) return
-      pressTimer.current = setTimeout(() => {
-        setShowContext(true)
-      }, 500)
-    }
-
-    const handlePressEnd = () => {
-      if (pressTimer.current) {
-        clearTimeout(pressTimer.current)
-        pressTimer.current = null
-      }
-    }
-
     const handleClickOutside = (e) => {
-      if (showContext && !messageRef.current?.contains(e.target)) {
+      if (messageRef.current && !messageRef.current.contains(e.target)) {
         setShowContext(false)
       }
     }
 
-    const element = messageRef.current
-    if (element) {
-      element.addEventListener('mousedown', handlePressStart, { passive: false })
-      element.addEventListener('touchstart', handlePressStart, { passive: false })
-      element.addEventListener('mouseup', handlePressEnd)
-      element.addEventListener('mouseleave', handlePressEnd)
-      element.addEventListener('touchend', handlePressEnd)
-      element.addEventListener('touchcancel', handlePressEnd)
-      element.addEventListener('contextmenu', (e) => {
-        if (isMobile && isSentByMe) {
-          e.preventDefault()
-          setShowContext(true)
-        }
-      })
-    }
-
-    document.addEventListener('click', handleClickOutside)
-    document.addEventListener('touchend', handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside, { passive: true })
 
     return () => {
-      if (element) {
-        element.removeEventListener('mousedown', handlePressStart)
-        element.removeEventListener('touchstart', handlePressStart)
-        element.removeEventListener('mouseup', handlePressEnd)
-        element.removeEventListener('mouseleave', handlePressEnd)
-        element.removeEventListener('touchend', handlePressEnd)
-        element.removeEventListener('touchcancel', handlePressEnd)
-        element.removeEventListener('contextmenu', handlePressStart)
-      }
-      document.removeEventListener('click', handleClickOutside)
-      document.removeEventListener('touchend', handleClickOutside)
-      if (pressTimer.current) {
-        clearTimeout(pressTimer.current)
-      }
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
     }
-  }, [isMobile, message.type, showContext, isSentByMe])
+  }, [])
+
+  const handleTouchStart = (e) => {
+    if (!isSentByMe || !isMobile) return
+
+    // Store touch start position
+    touchStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    }
+    
+    pressTimer.current = setTimeout(() => {
+      setShowContext(true)
+    }, 500)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!pressTimer.current) return
+
+    // Calculate distance moved
+    const deltaX = Math.abs(e.touches[0].clientX - touchStartPos.current.x)
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartPos.current.y)
+
+    // If moved more than 10px, cancel long press
+    if (deltaX > 10 || deltaY > 10) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
 
   const fetchReactions = useCallback(async () => {
     try {
@@ -151,6 +147,7 @@ const Message = memo(({ message, currentUserId }) => {
       }
 
       await fetchReactions()
+      onReact(message.id, reaction)
     } catch (error) {
       console.error('Error managing reaction:', error)
     }
@@ -180,6 +177,7 @@ const Message = memo(({ message, currentUserId }) => {
 
       if (error) throw error
       setIsEditing(false)
+      onEdit(message.id, editedContent.trim())
     } catch (error) {
       console.error('Error editing message:', error)
       setEditedContent(message.content)
@@ -197,6 +195,7 @@ const Message = memo(({ message, currentUserId }) => {
         .eq('id', message.id)
 
       if (error) throw error
+      onDelete(message.id)
     } catch (error) {
       console.error('Error deleting message:', error)
       setIsDeleting(false)
@@ -272,52 +271,63 @@ const Message = memo(({ message, currentUserId }) => {
     <div 
       ref={messageRef}
       className={`message ${isSentByMe ? 'sent' : 'received'} ${isVisible ? 'visible' : ''} ${isDeleting ? 'deleting' : ''} ${showContext ? 'show-context' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={(e) => {
+        if (isSentByMe) {
+          e.preventDefault()
+          setShowContext(true)
+        }
+      }}
     >
       {!isSentByMe && (
         <div className="message-sender">
           {message.sender?.username || 'Unknown User'}
         </div>
       )}
-      <div 
-        className="message-content"
-        onClick={(e) => {
-          if (showContext) {
-            e.stopPropagation()
-            setShowContext(false)
-          }
-        }}
-      >
-        {renderMessageContent()}
-        <div className="message-time">
-          {messageTime}
-          {message.is_edited && <span className="edited-label">(edited)</span>}
-        </div>
-        {isSentByMe && message.type === 'text' && (
-          <div className="message-actions">
-            <button 
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleEdit()
-              }}
-              className="action-button edit"
-              title={isEditing ? "Save (Enter)" : "Edit message"}
-            >
-              ✎
-            </button>
-            <button 
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleDelete()
-              }}
-              className="action-button delete"
-              title="Delete message"
-            >
-              🗑️
-            </button>
+      <div className="message-content-wrapper">
+        <div 
+          className="message-content"
+          onClick={(e) => {
+            if (showContext) {
+              e.stopPropagation()
+              setShowContext(false)
+            }
+          }}
+        >
+          {renderMessageContent()}
+          <div className="message-time">
+            {messageTime}
+            {message.is_edited && <span className="edited-label">(edited)</span>}
           </div>
-        )}
+          {isSentByMe && message.type === 'text' && (
+            <div className="message-actions">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleEdit()
+                }}
+                className="action-button edit"
+                title={isEditing ? "Save (Enter)" : "Edit message"}
+              >
+                ✎
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDelete()
+                }}
+                className="action-button delete"
+                title="Delete message"
+              >
+                🗑️
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {reactions.length > 0 && (
         <div className="message-reactions">
