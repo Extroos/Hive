@@ -1,0 +1,287 @@
+.message-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 12px 0;
+  align-items: flex-start;
+  max-width: 90%;
+}
+
+.message-wrapper.sent {
+  align-items: flex-end;
+  align-self: flex-end;
+}
+
+.message {
+  display: flex;
+  width: 100%;
+}
+
+.message-sender {
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 6px;
+  font-size: 1rem;
+  padding-left: 6px;
+}
+
+/* Improved Sent message bubble design */
+.sent-bubble {
+  position: relative;
+  max-width: 35em;
+  background-color: #007BFF;
+  padding: 1.5em 1.8em;
+  font-size: 1.4em;
+  border-radius: 22px 22px 6px 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-left: auto;
+  word-break: break-word;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.sent-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  background-color: #007BFF;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  border-bottom-left-radius: 6px;
+}
+
+.sent-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Improved Received message bubble design */
+.received-bubble {
+  position: relative;
+  max-width: 35em;
+  background-color: #E0F7FA;
+  padding: 1.5em 1.8em;
+  font-size: 1.4em;
+  border-radius: 22px 22px 22px 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-right: auto;
+  word-break: break-word;
+  transition: all 0.2s ease;
+  color: #1e1e1e;
+}
+
+.received-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: -10px;
+  width: 24px;
+  height: 24px;
+  background-color: #E0F7FA;
+  clip-path: polygon(0 100%, 100% 100%, 100% 0);
+  border-bottom-right-radius: 6px;
+}
+
+.received-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.message-content {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.message-time {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 4px;
+  align-self: flex-end;
+}
+
+/* Sent message time color */
+.sent-bubble .message-time {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Received message time color */
+.received-bubble .message-time {
+  color: #65676B;
+}
+
+/* Message actions menu */
+.message-actions {
+  position: absolute;
+  top: -50px;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  background: white;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+  user-select: none;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.message-actions button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: #f0f2f5;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #1c1e21;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.message-actions button:hover {
+  background: #e4e6eb;
+  transform: translateY(-1px);
+}
+
+/* Animation for actions menu */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Add subtle animation for message appearance */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-wrapper {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+/* Style for message status indicators (optional) */
+.message-status {
+  font-size: 0.7rem;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .message-wrapper {
+    max-width: 90%;
+  }
+
+  .sent-bubble, .received-bubble {
+    padding: 1em 1.2em;
+    font-size: 1rem;
+    max-width: 85%;
+  }
+
+  .sent-bubble::before {
+    width: 16px;
+    height: 16px;
+    right: -6px;
+  }
+
+  .received-bubble::before {
+    width: 16px;
+    height: 16px;
+    left: -6px;
+  }
+
+  .message-actions {
+    padding: 4px;
+  }
+
+  .message-actions button {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Add touch feedback */
+.sent-bubble:active,
+.received-bubble:active {
+  transform: scale(0.98);
+}
+
+/* Improve text selection */
+.message-text {
+  user-select: text;
+}
+
+.message-time,
+.message-status {
+  user-select: none;
+}
+
+.context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  padding: 4px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 0, 0, 0.5); /* Temporary red background for debugging */
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #333;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.context-menu-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+/* Add this to ensure proper positioning */
+.message-wrapper {
+  position: relative;
+  touch-action: none; /* Prevent scrolling while holding */
+}

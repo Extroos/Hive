@@ -1,0 +1,121 @@
+.profile-setup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--background-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.profile-setup-modal {
+  background: var(--background-color);
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.profile-setup-modal h2 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.profile-setup-modal p {
+  color: var(--gray-dark);
+  margin-bottom: 2rem;
+}
+
+.avatar-upload {
+  margin-bottom: 2rem;
+}
+
+.avatar-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  background: var(--gray-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 3rem;
+  color: var(--gray-dark);
+  font-weight: bold;
+}
+
+.hidden {
+  display: none;
+}
+
+.upload-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+  background: var(--secondary-color);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--gray-light);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.profile-setup-modal button[type="submit"] {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.profile-setup-modal button[type="submit"]:hover:not(:disabled) {
+  background: var(--secondary-color);
+}
+
+.profile-setup-modal button[type="submit"]:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error {
+  color: red;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+} 

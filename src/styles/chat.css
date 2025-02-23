@@ -1,0 +1,244 @@
+.chat-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  background: var(--background-color);
+  overflow: hidden;
+  margin-left: 0; /* Remove margin-left to allow full width */
+  width: 100%; /* Set width to 100% */
+}
+
+.messages-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--message-input-height, 64px));
+  padding-bottom: 64px; /* Add padding to prevent content from being hidden behind input */
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.message-input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--background-color);
+  padding: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  height: var(--message-input-height, 64px);
+}
+
+.no-chat-selected {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-dark);
+}
+
+.no-chat-selected h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.no-chat-selected p {
+  font-size: 1rem;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.menu-button {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  position: fixed;
+  top: 24px;
+  left: 16px;
+  z-index: 1100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: left 0.3s ease, background 0.3s ease;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.menu-button.open {
+  left: 296px;
+  background: var(--primary-color);
+  color: white;
+}
+
+.menu-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.menu-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide the menu button on larger screens */
+@media (min-width: 769px) {
+  .menu-button {
+    display: none;
+  }
+}
+
+/* Remove or comment out the sidebar overlay styles if they exist */
+/*
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.visible {
+  opacity: 1;
+}
+*/
+
+.sidebar {
+  width: 300px;
+  height: 100vh;
+  background: var(--background-color);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.3s ease, visibility 0.3s ease;
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+@media (max-width: 768px) {
+  .menu-button {
+    display: flex;
+    background: var(--primary-color);
+    color: white;
+  }
+
+  .menu-button.open {
+    left: 296px;
+    background: var(--primary-color);
+  }
+
+  .menu-button:hover {
+    background: var(--primary-dark);
+  }
+
+  .chat-container {
+    position: relative;
+  }
+
+  .chat-main {
+    height: 100%;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .messages-container {
+    height: calc(100vh - var(--message-input-height, 56px));
+    overflow: hidden;
+  }
+
+  .chat-messages {
+    padding: 0.75rem;
+    margin-bottom: var(--message-input-height, 56px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    height: var(--message-input-height, 56px);
+  }
+
+  .message-input-container.keyboard-visible {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    visibility: hidden;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+  }
+
+  .no-chat-selected {
+    padding: 1rem;
+  }
+
+  .no-chat-selected h2 {
+    font-size: 1.25rem;
+  }
+}
