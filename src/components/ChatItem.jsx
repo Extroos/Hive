@@ -22,22 +22,22 @@ const ChatItem = ({ chat, isSelected, onClick, currentUserId }) => {
 
   // Format the last message preview
   const messagePreview = useMemo(() => {
-    const lastMessage = chat.last_message
-    if (!lastMessage) return 'No messages yet'
+    const lastMessage = chat.last_message;
+    if (!lastMessage || !lastMessage.content) return 'No messages yet';
 
-    const isOwnMessage = lastMessage.sender_id === currentUserId
-    const prefix = isOwnMessage ? 'You: ' : ''
+    const isOwnMessage = lastMessage.sender_id === currentUserId;
+    const prefix = isOwnMessage ? 'You: ' : '';
 
     switch (lastMessage.type) {
       case 'image':
-        return `${prefix}📷 Image`
+        return `${prefix}📷 Image`;
       case 'document':
-        return `${prefix}📎 Document`
+        return `${prefix}📎 Document`;
       default:
         const content = lastMessage.content.length > 30
           ? `${lastMessage.content.substring(0, 30)}...`
-          : lastMessage.content
-        return `${prefix}${content}`
+          : lastMessage.content;
+        return `${prefix}${content}`;
     }
   }, [chat.last_message, currentUserId])
 

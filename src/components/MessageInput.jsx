@@ -7,6 +7,7 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [dragOver, setDragOver] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const lastTypingUpdateRef = useRef(0)
@@ -113,12 +114,12 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
     
     const files = e.dataTransfer.files
     if (files.length > 0) {
-      await handleFileUpload(files[0])
+      setSelectedFile(files[0]);
     }
   }
 
-  const handleFileUpload = async (file) => {
-    if (!file) return
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
 
     try {
       setUploading(true)
@@ -126,23 +127,26 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
 
       // Validate file
       const maxSize = 10 * 1024 * 1024 // 10MB
-      if (file.size > maxSize) {
+      if (selectedFile.size > maxSize) {
         throw new Error('File size should be less than 10MB')
       }
 
-      const fileExt = file.name.split('.').pop()
+      const fileExt = selectedFile.name.split('.').pop()
       const allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx']
       if (!allowedTypes.includes(fileExt.toLowerCase())) {
         throw new Error('Invalid file type')
       }
 
+      // Get the correct chat ID
+      const actualChatId = typeof chatId === 'object' ? chatId.id : chatId
+
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
-      const filePath = `${chatId}/${fileName}`
+      const filePath = `${actualChatId}/${fileName}`
 
       // Upload with progress tracking
       const { error: uploadError } = await supabase.storage
         .from('chat-media')
-        .upload(filePath, file, {
+        .upload(filePath, selectedFile, {
           upsert: true,
           onUploadProgress: (progress) => {
             setUploadProgress((progress.loaded / progress.total) * 100)
@@ -159,9 +163,9 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .insert([{
-          chat_id: chatId,
-          content: file.name,
-          type: file.type.startsWith('image/') ? 'image' : 'document',
+          chat_id: actualChatId,
+          content: selectedFile.name,
+          type: selectedFile.type.startsWith('image/') ? 'image' : 'document',
           file_url: publicUrl,
           sender_id: (await supabase.auth.getUser()).data.user.id
         }])
@@ -190,6 +194,7 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
     } finally {
       setUploading(false)
       setUploadProgress(0)
+      setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -274,7 +279,7 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={(e) => handleFileUpload(e.target.files[0])}
+        onChange={(e) => setSelectedFile(e.target.files[0])}
         style={{ display: 'none' }}
         accept="image/*,.pdf,.doc,.docx"
       />
@@ -287,6 +292,22 @@ const MessageInput = ({ chatId, onMessageSent, onTyping }) => {
       >
         {uploading ? '📤' : '📎'}
       </button>
+      {selectedFile && (
+        <div className="file-preview">
+          <span>{selectedFile.name}</span>
+          <div>
+            <button type="button" onClick={handleFileUpload}>Upload</button>
+            <button type="button" onClick={() => setSelectedFile(null)}>Remove</button>
+          </div>
+        </div>
+      )}
+      {uploading && (
+        <div className="loading-bubble">
+          <div className="dot"></div>
+          <div className="dot"></div>
+          <div className="dot"></div>
+        </div>
+      )}
       <input
         type="text"
         value={message}

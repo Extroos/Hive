@@ -1,5 +1,24 @@
 export const updateLogs = [
   {
+    version: '0.2.1',
+    date: '2024-02-24',
+    type: 'improvement',
+    changes: [
+      {
+        title: 'Image Optimization',
+        details: [
+          'Reduced image sizes for better performance',
+          'Added lazy loading for images',
+          'Implemented responsive image sizing',
+          'Enhanced image message UI with hover effects',
+          'Added fallback handling for failed image loads',
+          'Optimized mobile image display',
+          'Improved timestamp overlay on images'
+        ]
+      }
+    ]
+  },
+  {
     version: '0.2.0',
     date: '2024-02-23',
     type: 'major',
@@ -29,6 +48,19 @@ export const updateLogs = [
           'Optimized authentication performance',
           'Improved error handling and user feedback',
           'Enhanced security measures'
+        ]
+      },
+      {
+        title: 'File Message Bubble Enhancements',
+        details: [
+          'Enhanced file message bubble design with dynamic file type icons.',
+          'Added file extension badges for better identification.',
+          'Improved layout with proper spacing and alignment.',
+          'Implemented truncation for long file names with ellipsis.',
+          'Added hover effects for better interaction feedback.',
+          'Ensured responsive design for mobile devices.',
+          'Improved accessibility with proper color contrast and touch targets.',
+          'Supported various file types including documents, images, media, spreadsheets, and archives.'
         ]
       }
     ]

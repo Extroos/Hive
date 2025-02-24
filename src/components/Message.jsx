@@ -29,6 +29,36 @@ const Message = memo(({ message, currentUserId, onDelete, onEdit }) => {
     }
   }, [message.created_at])
 
+  // Get file extension and icon
+  const getFileInfo = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase()
+    let icon = '📄' // Default file icon
+    
+    // Map common extensions to icons
+    const iconMap = {
+      pdf: '📕',
+      doc: '📘',
+      docx: '📘',
+      txt: '📝',
+      jpg: '🖼️',
+      jpeg: '🖼️',
+      png: '🖼️',
+      gif: '🖼️',
+      mp4: '🎥',
+      mp3: '🎵',
+      wav: '🎵',
+      xls: '📊',
+      xlsx: '📊',
+      zip: '🗜️',
+      rar: '🗜️'
+    }
+    
+    return {
+      extension: ext,
+      icon: iconMap[ext] || icon
+    }
+  }
+
   const handleTouchStart = (e) => {
     if (!isSentByMe) return;
     
@@ -117,8 +147,45 @@ const Message = memo(({ message, currentUserId, onDelete, onEdit }) => {
           style={{ userSelect: 'none' }}
         > 
           <div className="message-content">
-            <div className="message-text">{message.content}</div>
-            <div className="message-time">{messageTime}</div>
+            {message.type === 'image' ? (
+              <div className="image-message">
+                <img 
+                  src={message.file_url} 
+                  alt={message.content} 
+                  className="message-image"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'fallback-image-url.jpg'; // Add a fallback image URL
+                  }}
+                />
+                <div className="message-time">{messageTime}</div>
+              </div>
+            ) : message.type === 'document' ? (
+              <div className="file-message">
+                <div className="file-icon">
+                  {getFileInfo(message.content).icon}
+                </div>
+                <div className="file-details">
+                  <a href={message.file_url} 
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     className="file-name"
+                  >
+                    {message.content}
+                  </a>
+                  <div className="file-meta">
+                    <span className="file-type">{getFileInfo(message.content).extension.toUpperCase()}</span>
+                    <span className="message-time">{messageTime}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="message-text">{message.content}</div>
+                <div className="message-time">{messageTime}</div>
+              </>
+            )}
           </div>
         </div>
       </div>

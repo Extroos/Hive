@@ -48,4 +48,16 @@ drop trigger if exists on_auth_user_created on auth.users;
 -- Create the trigger
 create trigger on_auth_user_created
     after insert on auth.users
-    for each row execute procedure public.handle_new_user(); 
+    for each row execute procedure public.handle_new_user();
+
+CREATE TABLE public.messages (
+    id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    chat_id uuid REFERENCES public.chats(id) ON DELETE CASCADE,
+    sender_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    content text,
+    type text DEFAULT 'text', -- 'text', 'image', 'video', 'document'
+    file_url text, -- for media messages
+    is_edited boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+); 
